@@ -1,0 +1,55 @@
+.kanban-column {
+  min-width: 300px;
+  width: 300px;
+  display: flex;
+  flex-direction: column;
+  background-color: transparent;
+}
+
+.column-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid var(--text-dark);
+}
+
+.column-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-dark);
+}
+
+.column-count {
+  background-color: white;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 12px;
+  border: 1px solid var(--border-color);
+}
+
+.column-content {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow-y: auto;
+  flex: 1;
+  padding-right: 4px; /* for scrollbar */
+}
+
+/* Hide scrollbar for columns */
+.column-content::-webkit-scrollbar {
+  width: 4px;
+}
+.column-content::-webkit-scrollbar-thumb {
+  background: #e2e8f0; 
+  border-radius: 4px;
+}
+
+.column-content.dragging-over {
+  background-color: rgba(0, 0, 0, 0.02);
+  border-radius: 8px;
+}
