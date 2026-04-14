@@ -5,7 +5,7 @@ import { Trophy, Lock, Unlock, Flame, TrendingUp, Medal, BarChart3, Activity, X,
 const formatMoney = (val) => new Intl.NumberFormat('vi-VN').format(val) + 'đ';
 
 const TNDashboard = ({ setActiveMenu }) => {
-   const { currentUser, deals, users, targetKPI } = useTN();
+   const { currentUser, deals, users, targetKPI, customers } = useTN();
    const isAdmin = currentUser.role === 'admin';
    const target = targetKPI;
 
@@ -83,6 +83,7 @@ const TNDashboard = ({ setActiveMenu }) => {
                <RevenueModal
                   deals={filteredDeals.filter(d => d.status === 'approved')}
                   users={users}
+                  customers={customers}
                   monthDisplay={monthDisplay}
                   totalRevenue={totalAgencyRevenue}
                   onClose={() => setShowRevenueModal(false)}
@@ -254,8 +255,9 @@ const TargetIcon = () => (
    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-blue-600"><circle cx="12" cy="12" r="10" /><circle cx="12" cy="12" r="6" /><circle cx="12" cy="12" r="2" /></svg>
 );
 
-const RevenueModal = ({ deals, users, monthDisplay, totalRevenue, onClose }) => {
+const RevenueModal = ({ deals, users, customers, monthDisplay, totalRevenue, onClose }) => {
    const getUserName = (userId) => users.find(u => u.id === userId)?.name || 'Ẩn danh';
+   const getCustomerName = (customerId) => customers.find(c => c.id === customerId)?.name || null;
 
    return (
       <div
@@ -311,7 +313,12 @@ const RevenueModal = ({ deals, users, monthDisplay, totalRevenue, onClose }) => 
                               {idx + 1}
                            </div>
                            <div>
-                              <div className="font-bold text-slate-800 text-sm">{deal.clientName || deal.name || 'Hợp đồng'}</div>
+                               <div className="font-bold text-slate-800 text-sm">
+                                 {getCustomerName(deal.customerId) || deal.service || 'Hợp đồng'}
+                               </div>
+                               {deal.service && getCustomerName(deal.customerId) && (
+                                 <div className="text-[11px] text-blue-600 font-semibold bg-blue-50 px-1.5 py-0.5 rounded inline-block mt-0.5">{deal.service}</div>
+                               )}
                               <div className="flex items-center gap-3 mt-0.5">
                                  <span className="text-xs text-slate-500 flex items-center gap-1">
                                     <User size={11} /> {getUserName(deal.userId)}

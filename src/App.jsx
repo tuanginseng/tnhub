@@ -15,11 +15,10 @@ import TNCalendar from './components/tn-holding/TNCalendar';
 function AppContent() {
   const { currentUser, setCurrentUser, users, reloadData } = useTN();
   const [activeMenu, setActiveMenu] = useState('DASHBOARD');
-  
+
   const [loginUsername, setLoginUsername] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
   const [loginError, setLoginError] = useState('');
-  const [showDemo, setShowDemo] = useState(false);
 
   const handleLogin = (e) => {
      e.preventDefault();
@@ -27,7 +26,7 @@ function AppContent() {
      const foundUser = users.find(u => u.username === loginUsername && u.password === loginPassword);
      if (foundUser) {
         setCurrentUser(foundUser);
-        reloadData(); // Fetch lại data mới nhất sau khi đăng nhập
+        reloadData();
      } else {
         setLoginError('Tài khoản hoặc mật khẩu không chính xác!');
      }
@@ -40,7 +39,7 @@ function AppContent() {
              <div className="w-16 h-16 bg-blue-600 rounded-xl flex items-center justify-center text-white font-black text-2xl mx-auto mb-6 tracking-tighter shadow-md">TN</div>
              <h2 className="text-2xl font-black text-slate-900 mb-2 text-center tracking-tight">Hệ Thống Quản Trị</h2>
              <p className="text-sm text-slate-500 mb-8 text-center font-medium">TN Holding Agency ERP</p>
-             
+
              <form onSubmit={handleLogin} className="space-y-4">
                 {loginError && (
                    <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm font-semibold border border-red-100 text-center animate-in shake">
@@ -49,7 +48,7 @@ function AppContent() {
                 )}
                 <div>
                    <label className="block text-sm font-bold text-slate-700 mb-1.5 ml-1">Tên Đăng Nhập</label>
-                   <input type="text" value={loginUsername} onChange={e => setLoginUsername(e.target.value)} required className="w-full border-2 border-slate-200 rounded-xl p-3 text-sm focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all font-medium" placeholder="Ví dụ: admin" />
+                   <input type="text" value={loginUsername} onChange={e => setLoginUsername(e.target.value)} required className="w-full border-2 border-slate-200 rounded-xl p-3 text-sm focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 outline-none transition-all font-medium" placeholder="Tên đăng nhập" />
                 </div>
                 <div>
                    <label className="block text-sm font-bold text-slate-700 mb-1.5 ml-1">Mật Khẩu</label>
@@ -59,30 +58,6 @@ function AppContent() {
                    Đăng Nhập
                 </button>
              </form>
-
-             <div className="mt-8 pt-6 border-t border-slate-100 text-center">
-                <button onClick={() => setShowDemo(!showDemo)} className="text-xs font-bold text-slate-400 hover:text-blue-600 transition-colors uppercase tracking-wider">
-                   {showDemo ? 'Ẩn tài khoản Demo' : 'Hiển thị tài khoản Demo (Dành cho Sếp)'}
-                </button>
-                
-                {showDemo && (
-                   <div className="mt-4 space-y-2 animate-in fade-in slide-in-from-top-2">
-                     {users.map(u => (
-                        <button 
-                          key={u.id}
-                          className="w-full bg-slate-50 border border-slate-200 p-3 rounded-xl hover:bg-white hover:border-blue-400 transition-colors text-left flex items-center justify-between group"
-                          onClick={() => { setCurrentUser(u); reloadData(); }}
-                        >
-                           <div>
-                             <div className="font-bold text-slate-800 group-hover:text-blue-700">{u.name}</div>
-                             <div className="text-xs text-slate-500">{u.title} - Pass: {u.password}</div>
-                           </div>
-                           <span className="text-[10px] font-black uppercase text-blue-600 bg-blue-50 px-2 py-0.5 rounded">{u.role}</span>
-                        </button>
-                     ))}
-                   </div>
-                )}
-             </div>
           </div>
        </div>
      );
