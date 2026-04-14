@@ -6,7 +6,21 @@ import './Layout.css';
 
 const Layout = ({ children, activeMenu, setActiveMenu }) => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const { tasks, currentUser } = useTN();
+  const { tasks, currentUser, events } = useTN();
+
+  // Ngày hôm nay dạng YYYY-MM-DD
+  const todayStr = (() => {
+    const n = new Date();
+    return `${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,'0')}-${String(n.getDate()).padStart(2,'0')}`;
+  })();
+
+  // Đếm sự kiện hôm nay của user hiện tại
+  const todayEventCount = events.filter(e => {
+    if (!currentUser) return false;
+    const isToday = e.date === todayStr;
+    if (currentUser.role === 'admin') return isToday;
+    return isToday && e.userId === currentUser.id;
+  }).length;
 
   // Đếm task chưa hoàn thành của user hiện tại
   const pendingCount = tasks.filter(t => {
@@ -17,8 +31,8 @@ const Layout = ({ children, activeMenu, setActiveMenu }) => {
   }).length;
 
   const topMenus = [
-    { name: 'Lịch làm việc', icon: Calendar },
-    { name: 'Công việc', icon: CheckSquare, badge: pendingCount },
+    { name: 'Lịch làm việc', icon: Calendar, badge: todayEventCount, badgeColor: '#2563eb' },
+    { name: 'Công việc', icon: CheckSquare, badge: pendingCount, badgeColor: '#ef4444' },
     { name: 'Tin nhắn', icon: MessageSquare },
     { name: 'Kho tài liệu', icon: FolderGit2 },
   ];
@@ -67,7 +81,7 @@ const Layout = ({ children, activeMenu, setActiveMenu }) => {
                 >
                    <m.icon size={16} />
                    <span style={{ fontSize: 14 }}>{m.name}</span>
-                   {/* Badge số task chưa hoàn thành */}
+                   {/* Badge */}
                    {m.badge > 0 && (
                      <span style={{
                        display: 'inline-flex',
@@ -77,7 +91,7 @@ const Layout = ({ children, activeMenu, setActiveMenu }) => {
                        height: 18,
                        padding: '0 5px',
                        borderRadius: 9,
-                       backgroundColor: '#ef4444',
+                       backgroundColor: m.badgeColor || '#ef4444',
                        color: '#fff',
                        fontSize: 11,
                        fontWeight: 700,

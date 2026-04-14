@@ -2,6 +2,13 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 
 // Helpers Mappers
+const mapDocToUI = (d) => ({
+  id: d.id, name: d.name, description: d.description || '',
+  type: d.type, // 'file' | 'link'
+  url: d.url, fileSize: d.file_size,
+  uploadedBy: d.uploaded_by, createdAt: d.created_at
+});
+
 const mapCustToUI = (c) => ({
   id: c.id, name: c.name, service: c.service, value: Number(c.expected_value),
   status: c.status, userId: c.user_id, industry: c.industry,
@@ -37,6 +44,19 @@ const mapTaskToDB = (t) => ({
   created_by_id: t.createdById
 });
 
+const mapEventToUI = (e) => ({
+  id: e.id, title: e.title, date: e.date,
+  startTime: e.start_time || '', endTime: e.end_time || '',
+  color: e.color || 'blue', note: e.note || '',
+  userId: e.user_id, createdAt: e.created_at
+});
+const mapEventToDB = (e) => ({
+  title: e.title, date: e.date,
+  start_time: e.startTime || null, end_time: e.endTime || null,
+  color: e.color || 'blue', note: e.note || '',
+  user_id: e.userId
+});
+
 const TNContext = createContext();
 
 export const TNProvider = ({ children }) => {
@@ -70,6 +90,7 @@ export const TNProvider = ({ children }) => {
   const [deals, setDeals] = useState([]);
   const [tasks, setTasks] = useState([]);
   const [documents, setDocuments] = useState([]);
+  const [events, setEvents] = useState([]);
 
   const [isReady, setIsReady] = useState(false);
 
@@ -158,6 +179,14 @@ export const TNProvider = ({ children }) => {
       if (cRes.data) setCustomers(cRes.data.map(mapCustToUI));
       if (dRes.data) setDeals(dRes.data.map(mapDealToUI));
       if (taskRes.data) setTasks(taskRes.data.map(mapTaskToUI));
+
+      // Load documents
+      const { data: docsData } = await supabase.from('tn_documents').select('*').order('created_at', { ascending: false });
+      if (docsData) setDocuments(docsData.map(mapDocToUI));
+
+      // Load calendar events
+      const { data: eventsData } = await supabase.from('tn_calendar_events').select('*').order('date', { ascending: true });
+      if (eventsData) setEvents(eventsData.map(mapEventToUI));
 
       // Load Settings
       if (sysRes.data) {
@@ -295,6 +324,74 @@ export const TNProvider = ({ children }) => {
     await supabase.from('tn_deals').delete().eq('id', id);
   };
 
+  // ── Calendar Events ──
+  const apiAddEvent = async (ev) => {
+    const { data, error } = await supabase.from('tn_calendar_events').insert(mapEventToDB(ev)).select();
+    if (error) return { error };
+    if (data) setEvents(prev => [...prev, mapEventToUI(data[0])]);
+    return { data };
+  };
+
+  const apiUpdateEvent = async (id, changes) => {
+    const payload = {};
+    if (changes.title !== undefined) payload.title = changes.title;
+    if (changes.date !== undefined) payload.date = changes.date;
+    if (changes.startTime !== undefined) payload.start_time = changes.startTime;
+    if (changes.endTime !== undefined) payload.end_time = changes.endTime;
+    if (changes.color !== undefined) payload.color = changes.color;
+    if (changes.note !== undefined) payload.note = changes.note;
+    const { data, error } = await supabase.from('tn_calendar_events').update(payload).eq('id', id).select();
+    if (error) return { error };
+    if (data) setEvents(prev => prev.map(e => e.id === id ? mapEventToUI(data[0]) : e));
+    return { data };
+  };
+
+  const apiDeleteEvent = async (id) => {
+    setEvents(prev => prev.filter(e => e.id !== id));
+    await supabase.from('tn_calendar_events').delete().eq('id', id);
+  };
+
+  const apiAddDocLink = async (doc) => {
+    const payload = {
+      name: doc.name,
+      type: 'link',
+      url: doc.url,
+      uploaded_by: doc.uploadedBy,
+      ...(doc.description ? { description: doc.description } : {}),
+    };
+    const { data, error } = await supabase.from('tn_documents').insert(payload).select();
+    if (error) return { error };
+    if (data) setDocuments(prev => [mapDocToUI(data[0]), ...prev]);
+    return { data };
+  };
+
+  const apiUploadDocFile = async (file, uploadedBy) => {
+    const safeName = `${Date.now()}_${file.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`;
+    const { data: storageData, error } = await supabase.storage
+      .from('tn-documents')
+      .upload(safeName, file, { upsert: false });
+    if (error) return { error };
+    const { data: { publicUrl } } = supabase.storage.from('tn-documents').getPublicUrl(safeName);
+    const payload = {
+      name: file.name, description: '',
+      type: 'file', url: publicUrl,
+      file_size: file.size, uploaded_by: uploadedBy
+    };
+    const { data } = await supabase.from('tn_documents').insert(payload).select();
+    if (data) setDocuments(prev => [mapDocToUI(data[0]), ...prev]);
+    return { data };
+  };
+
+  const apiDeleteDoc = async (doc) => {
+    setDocuments(prev => prev.filter(d => d.id !== doc.id));
+    await supabase.from('tn_documents').delete().eq('id', doc.id);
+    if (doc.type === 'file') {
+      // Xóa file trong storage
+      const fileName = doc.url.split('/').pop();
+      await supabase.storage.from('tn-documents').remove([fileName]);
+    }
+  };
+
   const apiAddTask = async (task) => {
     const { data } = await supabase.from('tn_tasks').insert(mapTaskToDB(task)).select();
     if (data) setTasks(prev => [mapTaskToUI(data[0]), ...prev]);
@@ -352,6 +449,9 @@ export const TNProvider = ({ children }) => {
     apiAddUser, apiDeleteUser, apiUpdateConfig, apiChangePassword,
     apiAddCustomer, apiUpdateCustomerBatch,
     apiAddDeal, apiUpdateDeal, apiDeleteDeal,
+    apiAddDocLink, apiUploadDocFile, apiDeleteDoc,
+    apiAddEvent, apiUpdateEvent, apiDeleteEvent,
+    events, setEvents,
     apiAddTask, apiAddTaskBatch, apiUpdateTask, apiDeleteTask, apiEditTask,
     reloadData: loadDatabase
   };

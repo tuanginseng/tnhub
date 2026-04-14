@@ -10,6 +10,7 @@ import TNAnalytics from './components/tn-holding/TNAnalytics';
 import TNTasks from './components/tn-holding/TNTasks';
 import TNDocuments from './components/tn-holding/TNDocuments';
 import TNSettings from './components/tn-holding/TNSettings';
+import TNCalendar from './components/tn-holding/TNCalendar';
 
 function AppContent() {
   const { currentUser, setCurrentUser, users, reloadData } = useTN();
@@ -96,8 +97,8 @@ function AppContent() {
         case 'Công việc': return <TNTasks />;
         case 'Kho tài liệu': return <TNDocuments />;
         case 'Cài Đặt': return <TNSettings />;
+        case 'Lịch làm việc': return <TNCalendar />;
         case 'Marketing':
-        case 'Lịch làm việc':
         case 'Tin nhắn':
            return <div style={{ padding: 32, color: '#64748b' }}>Đang phát triển giao diện {activeMenu}...</div>;
         default: return <TNDashboard />;

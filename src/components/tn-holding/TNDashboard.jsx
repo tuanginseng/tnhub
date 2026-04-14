@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useTN } from '../../context/TNHoldingContext';
-import { Trophy, Lock, Unlock, Flame, TrendingUp, Medal, BarChart3, Activity } from 'lucide-react';
+import { Trophy, Lock, Unlock, Flame, TrendingUp, Medal, BarChart3, Activity, X, CheckCircle, Calendar, User } from 'lucide-react';
 
 const formatMoney = (val) => new Intl.NumberFormat('vi-VN').format(val) + 'đ';
 
@@ -8,6 +8,8 @@ const TNDashboard = ({ setActiveMenu }) => {
    const { currentUser, deals, users, targetKPI } = useTN();
    const isAdmin = currentUser.role === 'admin';
    const target = targetKPI;
+
+   const [showRevenueModal, setShowRevenueModal] = useState(false);
 
    const [selectedMonth, setSelectedMonth] = useState(() => {
       const d = new Date();
@@ -47,13 +49,17 @@ const TNDashboard = ({ setActiveMenu }) => {
             </header>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-               <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-2xl p-8 text-white shadow-xl relative overflow-hidden">
-                  <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500 rounded-full blur-3xl -mr-20 -mt-20 opacity-30"></div>
+               <div
+                  onClick={() => setShowRevenueModal(true)}
+                  className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-2xl p-8 text-white shadow-xl relative overflow-hidden cursor-pointer hover:from-slate-800 hover:to-slate-700 transition-all group"
+               >
+                  <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500 rounded-full blur-3xl -mr-20 -mt-20 opacity-30 group-hover:opacity-40 transition-opacity"></div>
                   <div className="relative z-10">
                      <div className="text-blue-300 font-semibold mb-2 flex items-center gap-2">
                         <BarChart3 size={18} /> Tổng Doanh số {monthDisplay} (Đã duyệt)
                      </div>
                      <div className="text-4xl font-black">{formatMoney(totalAgencyRevenue)}</div>
+                     <div className="text-blue-400 text-xs mt-3 font-medium opacity-0 group-hover:opacity-100 transition-opacity">👆 Nhấn để xem chi tiết hợp đồng</div>
                   </div>
                </div>
 
@@ -71,6 +77,17 @@ const TNDashboard = ({ setActiveMenu }) => {
             </div>
 
             <LeaderBoard leaderBoard={leaderBoard} monthDisplay={monthDisplay} />
+
+            {/* Modal Doanh thu */}
+            {showRevenueModal && (
+               <RevenueModal
+                  deals={filteredDeals.filter(d => d.status === 'approved')}
+                  users={users}
+                  monthDisplay={monthDisplay}
+                  totalRevenue={totalAgencyRevenue}
+                  onClose={() => setShowRevenueModal(false)}
+               />
+            )}
          </div>
       );
    }
@@ -236,5 +253,99 @@ const LeaderBoard = ({ leaderBoard, monthDisplay }) => (
 const TargetIcon = () => (
    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-blue-600"><circle cx="12" cy="12" r="10" /><circle cx="12" cy="12" r="6" /><circle cx="12" cy="12" r="2" /></svg>
 );
+
+const RevenueModal = ({ deals, users, monthDisplay, totalRevenue, onClose }) => {
+   const getUserName = (userId) => users.find(u => u.id === userId)?.name || 'Ẩn danh';
+
+   return (
+      <div
+         className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4"
+         onClick={onClose}
+      >
+         <div
+            className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200"
+            onClick={e => e.stopPropagation()}
+         >
+            {/* Header */}
+            <div className="bg-gradient-to-r from-slate-900 to-slate-800 px-6 py-5 flex items-center justify-between flex-shrink-0">
+               <div>
+                  <div className="text-blue-300 text-xs font-semibold uppercase tracking-wider mb-1 flex items-center gap-1.5">
+                     <CheckCircle size={13} /> Hợp đồng đã duyệt
+                  </div>
+                  <h2 className="text-white text-xl font-bold">Doanh Thu Tháng {monthDisplay}</h2>
+               </div>
+               <div className="flex items-center gap-4">
+                  <div className="text-right">
+                     <div className="text-blue-300 text-xs font-semibold">Tổng cộng</div>
+                     <div className="text-white text-2xl font-black">{formatMoney(totalRevenue)}</div>
+                  </div>
+                  <button
+                     onClick={onClose}
+                     className="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors"
+                  >
+                     <X size={18} />
+                  </button>
+               </div>
+            </div>
+
+            {/* Count badge */}
+            <div className="px-6 py-3 bg-slate-50 border-b border-slate-200 flex-shrink-0">
+               <span className="text-sm text-slate-500 font-medium">
+                  <span className="font-bold text-slate-800">{deals.length}</span> hợp đồng được duyệt trong tháng {monthDisplay}
+               </span>
+            </div>
+
+            {/* Deal list */}
+            <div className="overflow-y-auto flex-1 divide-y divide-slate-100">
+               {deals.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-16 text-center">
+                     <BarChart3 className="text-slate-300 mb-3" size={40} />
+                     <p className="text-slate-400 font-semibold">Chưa có hợp đồng nào được duyệt</p>
+                     <p className="text-slate-400 text-sm mt-1">trong tháng {monthDisplay}</p>
+                  </div>
+               ) : (
+                  deals.map((deal, idx) => (
+                     <div key={deal.id} className="flex items-center justify-between px-6 py-4 hover:bg-slate-50 transition-colors">
+                        <div className="flex items-center gap-4">
+                           <div className="w-9 h-9 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600 font-bold text-sm flex-shrink-0">
+                              {idx + 1}
+                           </div>
+                           <div>
+                              <div className="font-bold text-slate-800 text-sm">{deal.clientName || deal.name || 'Hợp đồng'}</div>
+                              <div className="flex items-center gap-3 mt-0.5">
+                                 <span className="text-xs text-slate-500 flex items-center gap-1">
+                                    <User size={11} /> {getUserName(deal.userId)}
+                                 </span>
+                                 <span className="text-xs text-slate-400 flex items-center gap-1">
+                                    <Calendar size={11} /> {deal.approvedDate || deal.date || ''}
+                                 </span>
+                                 {deal.isFixFee && (
+                                    <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded">Phí Cứng</span>
+                                 )}
+                              </div>
+                           </div>
+                        </div>
+                        <div className="text-right flex-shrink-0 ml-4">
+                           <div className="font-bold text-emerald-600">{formatMoney(deal.amount)}</div>
+                           <div className="text-[10px] text-emerald-400 font-semibold mt-0.5 flex items-center justify-end gap-1">
+                              <CheckCircle size={10} /> Đã duyệt
+                           </div>
+                        </div>
+                     </div>
+                  ))
+               )}
+            </div>
+
+            {/* Footer total */}
+            {deals.length > 0 && (
+               <div className="px-6 py-4 bg-slate-50 border-t border-slate-200 flex justify-between items-center flex-shrink-0">
+                  <span className="text-sm font-bold text-slate-600">Tổng doanh thu ({deals.length} HĐ)</span>
+                  <span className="text-lg font-black text-emerald-600">{formatMoney(totalRevenue)}</span>
+               </div>
+            )}
+         </div>
+      </div>
+   );
+};
 
 export default TNDashboard;
