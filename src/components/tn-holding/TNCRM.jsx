@@ -194,7 +194,7 @@ const TNCRM = () => {
                                                 <h4 className="font-bold text-slate-800 text-[15px] leading-tight mb-1">{customer.name}</h4>
                                                 {lsBadge}
                                              </div>
-                                             {customer.userId === currentUser.id && (
+                                             {(isAdmin || customer.userId === currentUser.id) && (
                                                 <div className="absolute top-0 right-0 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                                    <button onClick={() => openEditModal(customer)} className="p-1.5 text-slate-400 hover:text-blue-600 bg-white hover:bg-blue-50 rounded border border-transparent hover:border-blue-100 shadow-sm" title="Sửa">
                                                       <Edit2 size={13} />
