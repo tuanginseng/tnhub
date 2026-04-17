@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { useTN } from '../../context/TNHoldingContext';
-import { MoreHorizontal, Plus, X, Phone, Briefcase, FileText } from 'lucide-react';
+import { MoreHorizontal, Plus, X, Phone, Briefcase, FileText, Edit2 } from 'lucide-react';
 
 const formatMoney = (val) => new Intl.NumberFormat('vi-VN').format(val) + 'đ';
 
@@ -24,7 +24,7 @@ const SERVICES_LIST = [
 ];
 
 const TNCRM = () => {
-  const { customers, apiAddCustomer, apiUpdateCustomerBatch, currentUser, users } = useTN();
+  const { customers, apiAddCustomer, apiUpdateCustomerBatch, apiUpdateCustomer, apiDeleteCustomer, currentUser, users } = useTN();
   
   const isAdmin = currentUser.role === 'admin';
   const saleUsers = users.filter(u => u.role !== 'admin');
@@ -42,9 +42,12 @@ const TNCRM = () => {
   const [mPhone, setMPhone] = useState('');
   const [mNote, setMNote] = useState('');
 
+  const [editingCustomerId, setEditingCustomerId] = useState(null);
+
   const resetModal = () => {
      setMName(''); setMIndustry(''); setMService(SERVICES_LIST[0]); 
      setMLeadStatus('pending'); setMPhone(''); setMNote('');
+     setEditingCustomerId(null);
      setIsModalOpen(false);
   };
 
@@ -52,21 +55,48 @@ const TNCRM = () => {
      e.preventDefault();
      if (!mName) return alert("Vui lòng nhập Tên Khách Hàng");
 
-     const newCust = {
-        id: `c${Date.now()}`,
-        name: mName,
-        industry: mIndustry,
-        service: mService,
-        lead_status: mLeadStatus,
-        phone: mPhone,
-        note: mNote,
-        value: 10000000, // Giá trị ảo mặc định
-        status: 'Tiếp cận',
-        userId: selectedUserId 
-     };
-     
-     apiAddCustomer(newCust);
+     if (editingCustomerId) {
+        apiUpdateCustomer(editingCustomerId, {
+           name: mName,
+           industry: mIndustry,
+           service: mService,
+           lead_status: mLeadStatus,
+           phone: mPhone,
+           note: mNote
+        });
+     } else {
+        const newCust = {
+           id: `c${Date.now()}`,
+           name: mName,
+           industry: mIndustry,
+           service: mService,
+           lead_status: mLeadStatus,
+           phone: mPhone,
+           note: mNote,
+           value: 10000000, // Giá trị ảo mặc định
+           status: 'Tiếp cận',
+           userId: selectedUserId 
+        };
+        apiAddCustomer(newCust);
+     }
      resetModal();
+  };
+
+  const openEditModal = (customer) => {
+     setEditingCustomerId(customer.id);
+     setMName(customer.name);
+     setMIndustry(customer.industry || '');
+     setMService(customer.service || SERVICES_LIST[0]);
+     setMLeadStatus(customer.lead_status || 'pending');
+     setMPhone(customer.phone || '');
+     setMNote(customer.note || '');
+     setIsModalOpen(true);
+  };
+
+  const handleDelete = (customer) => {
+     if (window.confirm(`Bạn có chắc chắn muốn xóa khách hàng "${customer.name}"?`)) {
+        apiDeleteCustomer(customer.id);
+     }
   };
 
   const onDragEnd = (result) => {
@@ -157,11 +187,23 @@ const TNCRM = () => {
                                           ref={provided.innerRef}
                                           {...provided.draggableProps}
                                           {...provided.dragHandleProps}
-                                          className={`bg-white p-4 rounded-xl shadow-sm border ${snapshot.isDragging ? 'border-blue-400 shadow-xl rotate-3 scale-105 z-50' : 'border-slate-200 hover:border-blue-300 hover:shadow-md'} transition-all cursor-grab active:cursor-grabbing`}
+                                          className={`bg-white p-4 rounded-xl shadow-sm border ${snapshot.isDragging ? 'border-blue-400 shadow-xl rotate-3 scale-105 z-50' : 'border-slate-200 hover:border-blue-300 hover:shadow-md'} transition-all cursor-grab active:cursor-grabbing group`}
                                        >
-                                          <div className="flex justify-between items-start mb-2">
-                                             <h4 className="font-bold text-slate-800 text-[15px] leading-tight">{customer.name}</h4>
-                                             {lsBadge}
+                                          <div className="flex justify-between items-start mb-2 relative">
+                                             <div className="pr-12">
+                                                <h4 className="font-bold text-slate-800 text-[15px] leading-tight mb-1">{customer.name}</h4>
+                                                {lsBadge}
+                                             </div>
+                                             {customer.userId === currentUser.id && (
+                                                <div className="absolute top-0 right-0 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                   <button onClick={() => openEditModal(customer)} className="p-1.5 text-slate-400 hover:text-blue-600 bg-white hover:bg-blue-50 rounded border border-transparent hover:border-blue-100 shadow-sm" title="Sửa">
+                                                      <Edit2 size={13} />
+                                                   </button>
+                                                   <button onClick={() => handleDelete(customer)} className="p-1.5 text-slate-400 hover:text-red-600 bg-white hover:bg-red-50 rounded border border-transparent hover:border-red-100 shadow-sm" title="Xóa">
+                                                      <X size={13} />
+                                                   </button>
+                                                </div>
+                                             )}
                                           </div>
                                           
                                           <div className="flex flex-wrap gap-1 mb-3">
@@ -200,7 +242,7 @@ const TNCRM = () => {
             <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
                <div className="flex items-center justify-between p-6 border-b border-slate-100 bg-slate-50">
                   <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2">
-                     <Plus size={20} className="text-blue-600"/> Thêm Khách Hàng (Tạo Lead)
+                     <Plus size={20} className="text-blue-600"/> {editingCustomerId ? 'Cập Nhật Khách Hàng' : 'Thêm Khách Hàng (Tạo Lead)'}
                   </h2>
                   <button onClick={resetModal} className="text-slate-400 hover:text-slate-700 bg-white p-1 rounded-full border border-slate-200 shadow-sm transition-colors">
                      <X size={20}/>
@@ -248,7 +290,7 @@ const TNCRM = () => {
 
                   <div className="mt-8 pt-4 border-t border-slate-100 flex justify-end gap-3">
                      <button type="button" onClick={resetModal} className="px-5 py-2.5 rounded-lg text-sm font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors">Hủy</button>
-                     <button type="submit" className="px-6 py-2.5 rounded-lg text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 shadow-md transition-colors">Lưu Khách Hàng</button>
+                     <button type="submit" className="px-6 py-2.5 rounded-lg text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 shadow-md transition-colors">{editingCustomerId ? 'Cập Nhật' : 'Lưu Khách Hàng'}</button>
                   </div>
                </form>
             </div>

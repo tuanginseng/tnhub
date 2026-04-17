@@ -295,6 +295,27 @@ export const TNProvider = ({ children }) => {
     }
   };
 
+  const apiUpdateCustomer = async (id, changes) => {
+    let dbPayload = {};
+    if (changes.name !== undefined) dbPayload.name = changes.name;
+    if (changes.service !== undefined) dbPayload.service = changes.service;
+    if (changes.value !== undefined) dbPayload.expected_value = changes.value;
+    if (changes.status !== undefined) dbPayload.status = changes.status;
+    if (changes.industry !== undefined) dbPayload.industry = changes.industry;
+    if (changes.phone !== undefined) dbPayload.phone = changes.phone;
+    if (changes.note !== undefined) dbPayload.note = changes.note;
+    if (changes.lead_status !== undefined) dbPayload.lead_status = changes.lead_status;
+
+    setCustomers(prev => prev.map(c => c.id === id ? { ...c, ...changes } : c));
+    await supabase.from('tn_customers').update(dbPayload).eq('id', id);
+  };
+
+  const apiDeleteCustomer = async (id) => {
+    setCustomers(prev => prev.filter(c => c.id !== id));
+    await supabase.from('tn_customers').delete().eq('id', id);
+  };
+
+
   const apiAddDeal = async (deal) => {
     const { data } = await supabase.from('tn_deals').insert(mapDealToDB(deal)).select();
     if (data) setDeals([mapDealToUI(data[0]), ...deals]);
@@ -447,7 +468,7 @@ export const TNProvider = ({ children }) => {
     documents, setDocuments,
     // API functions
     apiAddUser, apiDeleteUser, apiUpdateConfig, apiChangePassword,
-    apiAddCustomer, apiUpdateCustomerBatch,
+    apiAddCustomer, apiUpdateCustomerBatch, apiUpdateCustomer, apiDeleteCustomer,
     apiAddDeal, apiUpdateDeal, apiDeleteDeal,
     apiAddDocLink, apiUploadDocFile, apiDeleteDoc,
     apiAddEvent, apiUpdateEvent, apiDeleteEvent,
